@@ -1,10 +1,4 @@
-build/*
-.gradle/*
+dependency-reduced-pom.xml
 .idea/*
-*.log
-*.html
-*.xml
 *.iml
-*.ipr
-*.iws
-out/
+target
