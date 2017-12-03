@@ -31,20 +31,22 @@ public class TagsHelperTest {
 
   @DataProvider(name = "taskInfo")
   public Object[][] generateTaskInfo() {
+    Map<String, String> expectedTags = generateExpectedTags(stormId, rawStormId);
+
     return new Object[][]{
-      generateTaskInfo(stormId, rawStormId),
-      generateTaskInfo(stormId, rawStormId)
+      new Object[]{rawStormId, generateTaskInfo(expectedTags), expectedTags},
+      new Object[]{rawStormId, generateTaskInfo(getTagsWithPeriods(stormId, rawStormId)), getExpectedSanitizedTags(stormId, rawStormId)}
     };
   }
 
   @DataProvider(name = "prefix")
   public Object[][] generatePrefix() {
     String prefixConfig = RandomStringUtils.randomAlphanumeric(10);
-    HashMap<String, String> tags1 = generateTags(stormId, rawStormId);
-    HashMap<String, String> tags2 = generateTags(stormId, rawStormId);
+    Map<String, String> tags1 = generateExpectedTags(stormId, rawStormId);
+    Map<String, String> tags2 = generateExpectedTags(stormId, rawStormId);
     return new Object[][]{
-      new Object[]{prefixConfig, tags1, getPrefix(prefixConfig, tags1)},
-      new Object[]{prefixConfig, tags2, getPrefix(prefixConfig, tags2)}
+      new Object[]{prefixConfig, tags1, getExpectedPrefix(prefixConfig, tags1)},
+      new Object[]{prefixConfig, tags2, getExpectedPrefix(prefixConfig, tags2)}
     };
   }
 
@@ -58,22 +60,17 @@ public class TagsHelperTest {
     assertThat(TagsHelper.constructMetricPrefix(prefixConfig, tags)).isEqualTo(expectedPrefix);
   }
 
-  private Object[] generateTaskInfo(String stormId, String rawStormId) {
-    HashMap<String, String> tags = generateTags(stormId, rawStormId);
-    return new Object[]{
-      rawStormId,
-      new IMetricsConsumer.TaskInfo(
-        tags.get("srcWorkerHost"),
-        Integer.valueOf(tags.get("srcWorkerPort")),
-        tags.get("srcComponentId"),
-        Integer.valueOf(tags.get("srcTaskId")),
-        System.currentTimeMillis(),
-        10),
-      tags
-    };
+  private IMetricsConsumer.TaskInfo generateTaskInfo(Map<String, String> tags) {
+    return new IMetricsConsumer.TaskInfo(
+      tags.get("srcWorkerHost"),
+      Integer.valueOf(tags.get("srcWorkerPort")),
+      tags.get("srcComponentId"),
+      Integer.valueOf(tags.get("srcTaskId")),
+      System.currentTimeMillis(),
+      10);
   }
 
-  private String getPrefix(String prefixConfig, Map<String, String> tags) {
+  private String getExpectedPrefix(String prefixConfig, Map<String, String> tags) {
     return String.format("%s.%s.%s.%s.%s.%s",
       prefixConfig,
       tags.get("stormId"),
@@ -84,19 +81,41 @@ public class TagsHelperTest {
     );
   }
 
-  private HashMap<String, String> generateTags(String stormId, String rawStormId) {
+  private Map<String, String> generateExpectedTags(String stormId, String rawStormId) {
     String testStormComponentID = RandomStringUtils.randomAlphanumeric(20);
     String testStormSrcWorkerHost = RandomStringUtils.randomAlphanumeric(20);
     Integer testStormSrcWorkerPort = 6700;
     Integer testStormSrcTaskId = 3008;
 
-    HashMap<String, String> expectedTags = new HashMap<String, String>();
-    expectedTags.put("rawStormId", rawStormId);
-    expectedTags.put("stormId", stormId);
-    expectedTags.put("srcComponentId", testStormComponentID);
-    expectedTags.put("srcWorkerHost", testStormSrcWorkerHost);
-    expectedTags.put("srcWorkerPort", String.valueOf(testStormSrcWorkerPort));
-    expectedTags.put("srcTaskId", String.valueOf(testStormSrcTaskId));
-    return expectedTags;
+    Map<String, String> tags = new HashMap<>();
+    tags.put("rawStormId", rawStormId);
+    tags.put("stormId", stormId);
+    tags.put("srcComponentId", testStormComponentID);
+    tags.put("srcWorkerHost", testStormSrcWorkerHost);
+    tags.put("srcWorkerPort", String.valueOf(testStormSrcWorkerPort));
+    tags.put("srcTaskId", String.valueOf(testStormSrcTaskId));
+    return tags;
+  }
+
+  private Map<String, String> getTagsWithPeriods(String stormId, String rawStormId) {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("rawStormId", rawStormId);
+    tags.put("stormId", stormId);
+    tags.put("srcComponentId", "component.id");
+    tags.put("srcWorkerHost", "worker.host");
+    tags.put("srcWorkerPort", "6700");
+    tags.put("srcTaskId", "25");
+    return tags;
+  }
+
+  private Map<String, String> getExpectedSanitizedTags(String stormId, String rawStormId) {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("rawStormId", rawStormId);
+    tags.put("stormId", stormId);
+    tags.put("srcComponentId", "component_id");
+    tags.put("srcWorkerHost", "worker_host");
+    tags.put("srcWorkerPort", "6700");
+    tags.put("srcTaskId", "25");
+    return tags;
   }
 }
