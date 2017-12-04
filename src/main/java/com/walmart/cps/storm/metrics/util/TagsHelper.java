@@ -31,10 +31,10 @@ public class TagsHelper {
 
   public static Map<String, String> convertToTags(String stormId, IMetricsConsumer.TaskInfo taskInfo) {
     Map<String, String> tags = new HashMap<>();
-    tags.put("srcComponentId", taskInfo.srcComponentId);
-    tags.put("stormId", removeNonce(stormId));
-    tags.put("rawStormId", stormId);
-    tags.put("srcWorkerHost", taskInfo.srcWorkerHost);
+    tags.put("srcComponentId", sanitizeTag(taskInfo.srcComponentId));
+    tags.put("stormId", sanitizeTag(removeNonce(stormId)));
+    tags.put("rawStormId", sanitizeTag(stormId));
+    tags.put("srcWorkerHost", sanitizeTag(taskInfo.srcWorkerHost));
     tags.put("srcWorkerPort", String.valueOf(taskInfo.srcWorkerPort));
     tags.put("srcTaskId", String.valueOf(taskInfo.srcTaskId));
     return tags;
@@ -52,12 +52,13 @@ public class TagsHelper {
     if (prefix == null) {
       throw new IllegalArgumentException("Prefix is required");
     }
-    appendIfNotNullOrEmpty(sb, prefix);
-    appendIfNotNullOrEmpty(sb, tags, "stormId");
-    appendIfNotNullOrEmpty(sb, tags, "srcComponentId");
-    appendIfNotNullOrEmpty(sb, tags, "srcWorkerHost");
-    appendIfNotNullOrEmpty(sb, tags, "srcWorkerPort");
-    appendIfNotNullOrEmpty(sb, tags, "srcTaskId");
+
+    appendTagIfNotNullOrEmpty(sb, prefix);
+    appendTagIfNotNullOrEmpty(sb, tags, "stormId");
+    appendTagIfNotNullOrEmpty(sb, tags, "srcComponentId");
+    appendTagIfNotNullOrEmpty(sb, tags, "srcWorkerHost");
+    appendTagIfNotNullOrEmpty(sb, tags, "srcWorkerPort");
+    appendTagIfNotNullOrEmpty(sb, tags, "srcTaskId");
 
     return sb.substring(0, sb.length() - 1);
   }
@@ -69,14 +70,21 @@ public class TagsHelper {
     return topologyId.substring(0, topologyId.substring(0, topologyId.lastIndexOf("-")).lastIndexOf("-"));
   }
 
-  private static void appendIfNotNullOrEmpty(StringBuilder sb, Map<String, String> tags, String key) {
+  private static void appendTagIfNotNullOrEmpty(StringBuilder sb, Map<String, String> tags, String key) {
     String value = tags.get(key);
-    appendIfNotNullOrEmpty(sb, value);
+    appendTagIfNotNullOrEmpty(sb, value);
   }
 
-  private static void appendIfNotNullOrEmpty(StringBuilder sb, String value) {
+  private static void appendTagIfNotNullOrEmpty(StringBuilder sb, String value) {
     if (value != null && !value.isEmpty()) {
       sb.append(value).append(".");
     }
+  }
+
+  /**
+   * Sanitizes the tags of "." and replaces it with "_" for simpler graphite metric names
+   */
+  private static String sanitizeTag(String tag) {
+    return tag.replace(".", "_");
   }
 }
